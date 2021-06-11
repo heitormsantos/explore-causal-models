@@ -1,0 +1,9 @@
+graphviz==0.16
+matplotlib==3.4.2
+numpy==1.20.3
+pandas==1.2.4
+plotly==4.14.3
+scikit-learn>=0.24.2
+scipy==1.6.3
+streamlit==0.82.0
+umap-learn==0.5.1
