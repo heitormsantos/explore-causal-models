@@ -23,11 +23,11 @@ def compute_alpha_hat(alpha_y, alpha_d, tau):
     return ((4 * tau * alpha_y) + alpha_d) / ((4 * tau) + 1)
 
 # 1. LOAD FILES
-CSV_PATH = '../data/low100.csv'
+CSV_PATH = 'data/low100.csv'
 df = pd.read_csv(CSV_PATH)
 
 true_ate_df = pd.read_csv(
-    '../data/lowDim_trueATE.csv'
+    'data/lowDim_trueATE.csv'
 )
 
 filename = CSV_PATH.split('/')[-1].rstrip('.csv')
