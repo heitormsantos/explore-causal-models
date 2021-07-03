@@ -41,11 +41,12 @@ predictive_models_dict = {
 
 # 1. LOAD FILES
 CSV_PATH = 'data/low100.csv'
+# CSV_PATH = 'data/coupons.xls'
 df = pd.read_csv(CSV_PATH)
 
-true_ate_df = pd.read_csv(
-    'data/lowDim_trueATE.csv'
-)
+# true_ate_df = pd.read_csv(
+#     'data/lowDim_trueATE.csv'
+# )
 
 filename = CSV_PATH.split('/')[-1].rstrip('.csv')
 
@@ -63,13 +64,13 @@ st.sidebar.header("Configuration")
 
 st.sidebar.header('Choose model variables for predictive model')
 
-target = st.sidebar.selectbox(
-    'Which variable is the target?',
+pred_target = st.sidebar.selectbox(
+    'Which variable is the target for the prediction model?',
     df.columns.tolist(),
     index=0
 )
 
-preselected_covariates = [cov for cov in df.columns if cov != target]
+preselected_covariates = [cov for cov in df.columns if cov != pred_target]
 
 pred_covariates = st.sidebar.multiselect(
     'Select covariates for predictive model',
@@ -93,11 +94,11 @@ session_state.train_button_sent = train_button_sent
 
 if session_state.train_button_sent:
     with st.spinner("Training ongoing"):
-        y_pred = pred_algorithm.train_cv(X=df[pred_covariates], y=df[target])
-        st.write(f'MAPE: {round(mean_absolute_percentage_error(y_true=df[target], y_pred=y_pred), 2)}')
-        st.write(f'R^2: {round(r2_score(y_true=df[target], y_pred=y_pred), 2)}')
+        y_pred = pred_algorithm.train_cv(X=df[pred_covariates], y=df[pred_target])
+        st.write(f'MAPE: {round(mean_absolute_percentage_error(y_true=df[pred_target], y_pred=y_pred), 2)}')
+        st.write(f'R^2: {round(r2_score(y_true=df[pred_target], y_pred=y_pred), 2)}')
 
-        pred_algorithm.model.fit(X=df[pred_covariates], y=df[target])
+        pred_algorithm.model.fit(X=df[pred_covariates], y=df[pred_target])
         feature_importances = pred_algorithm.get_feature_importances()
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.barplot(
@@ -116,14 +117,14 @@ if session_state.train_button_sent:
         ax.legend()
         st.pyplot(fig)
 
-st.header('Causal model')
-
+# st.header('Causal model')
+#
 # st.sidebar.header('Choose model variables for causal model')
 #
 # # 2.1 CAUSAL VARIABLE SELECTION
 #
-# target = st.sidebar.selectbox(
-#     'Which variable is the target?',
+# causal_target = st.sidebar.selectbox(
+#     'Which variable is the target for the causal model?',
 #     df.columns.tolist(),
 #     index=0
 # )
@@ -134,10 +135,10 @@ st.header('Causal model')
 #     index=1
 # )
 #
-# initial_covariates = [col for col in df.columns if col not in [target, treatment]]
+# initial_covariates = [col for col in df.columns if col not in [causal_target, treatment]]
 #
 # # 2.1.0 Exclude low variance covariates
-# target_coef_variation = df[target].std() / df[target].mean()
+# target_coef_variation = df[causal_target].std() / df[causal_target].mean()
 # min_coef_variation = min(0.01, target_coef_variation / 10) # Minimum coefficient of variation is 10% of the target's CV
 #
 # covariates_coef_variation = (df[initial_covariates].std() / df[initial_covariates].mean())
@@ -152,10 +153,10 @@ st.header('Causal model')
 #     st.write('These are the excluded low variance covariates:', low_variance_covariates)
 #
 # # 2.1.1 Exclude highly colinear covariates
-# correlations = df[proper_variance_covariates + [target]].corr(method='spearman').abs()
+# correlations = df[proper_variance_covariates + [causal_target]].corr(method='spearman').abs()
 #
 # covariates_sorted_by_target_correleation = correlations[
-#     ~correlations.index.isin([target])
+#     ~correlations.index.isin([causal_target])
 # ]['Y'].abs().sort_values(ascending=False).index.tolist()
 #
 # colinear_corr_threhsold = 0.8
@@ -186,7 +187,7 @@ st.header('Causal model')
 # standard_scaler = StandardScaler()
 # X_pot_cov_std = standard_scaler.fit_transform(df[potential_covariates])
 # y_treatment = df[treatment]
-# y_outcome = df[target]
+# y_outcome = df[causal_target]
 #
 # # 2.1.2.1 Parameters for treatment prediction
 # treatment_prediction_model = LogisticRegression()
@@ -255,7 +256,7 @@ st.header('Causal model')
 # # 3. SPLIT DATA SET
 # X_train, X_test, y_train, y_test = train_test_split(
 #     df[[treatment] + covariates],
-#     df[target],
+#     df[causal_target],
 #     test_size=test_ratio / 100,
 #     random_state=42
 # )
@@ -272,8 +273,8 @@ st.header('Causal model')
 #
 # for cov in covariates:
 #     graph.edge(cov, treatment)
-#     graph.edge(cov, target)
-# graph.edge(treatment, target)
+#     graph.edge(cov, causal_target)
+# graph.edge(treatment, causal_target)
 # st.graphviz_chart(graph)
 #
 # # Check covariate clusters
@@ -287,14 +288,14 @@ st.header('Causal model')
 #              umap_2d_reducer = umap.UMAP(n_components=2, random_state=42)
 #              train_set_leaves_2d_embedding = umap_2d_reducer.fit_transform(X_train_cov_std)
 #         X_train[['e0', 'e1']] = train_set_leaves_2d_embedding
-#         X_train[target] = y_train
+#         X_train[causal_target] = y_train
 #
 #         st.header('Check train set covariates embedding')
 #         fig = px.scatter(
 #             X_train,
 #             x="e0",
 #             y="e1",
-#             color=target,
+#             color=causal_target,
 #         )
 #         st.plotly_chart(
 #             fig,
