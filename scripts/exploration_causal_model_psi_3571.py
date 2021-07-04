@@ -313,7 +313,7 @@ if session_state.train_button_sent:
             )
         )
 
-        st.header('Partial dependence plot for the test set')
+        st.header('Partial dependence plot')
         pdp = plot_partial_dependence(
             causal_model, X_test, [treatment],
             kind='both',
@@ -321,7 +321,7 @@ if session_state.train_button_sent:
         )
         st.pyplot(pdp.figure_)
 
-        st.header('Treatment effect distribution over test set')
+        st.header('Treatment effect distribution')
         fig, ax = plt.subplots()
         ax.hist(
             y_predict_test_ate,
