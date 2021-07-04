@@ -9,26 +9,27 @@ import plotly.graph_objects as go
 import SessionState
 from sklearn.inspection import plot_partial_dependence
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import mean_absolute_percentage_error, r2_score, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import cross_val_predict, train_test_split
 from sklearn.preprocessing import StandardScaler
 import streamlit as st
-import umap
 
-from causal_models import CausalExtraTreesRegressor
+from causal_models import CausalExtraTreesRegressor, XLearnerRegressor
 from streamlit_utils import set_page_title
 
 # 0. HELPER FUNCTIONS AND CONSTANTS
 def compute_alpha_hat(alpha_y, alpha_d, tau):
     return ((4 * tau * alpha_y) + alpha_d) / ((4 * tau) + 1)
 
-causal_models_options = ['ExtraTrees regressor']
+causal_models_options = ['ExtraTrees regressor + kNN', 'XLearner regressor']
 causal_models_dict = {
-    'ExtraTrees regressor': CausalExtraTreesRegressor
+    'ExtraTrees regressor + kNN': CausalExtraTreesRegressor,
+    'XLearner regressor': XLearnerRegressor
 }
 
 # 1. LOAD FILES
-CSV_PATH = 'data/coupons.xls'
+# CSV_PATH = 'data/coupons.xls'
+CSV_PATH = 'data/coupons_v2.csv'
 df = pd.read_csv(CSV_PATH)
 
 filename = CSV_PATH.split('/')[-1].rstrip('.xls')
@@ -50,7 +51,7 @@ st.sidebar.header('Choose model variables for causal model')
 target = st.sidebar.selectbox(
     'Which variable is the target for the causal model?',
     df.columns.tolist(),
-    index=5
+    index=6
 )
 
 treatment = st.sidebar.selectbox(
@@ -253,7 +254,7 @@ if session_state.train_button_sent:
         )
 
         model_feat_importances['feature'] = covariates
-        model_feat_importances['importance'] = causal_model.extratrees_model.feature_importances_
+        model_feat_importances['importance'] = causal_model.feature_importances_
 
         top_2_features = model_feat_importances.sort_values(
             'importance',
@@ -261,41 +262,41 @@ if session_state.train_button_sent:
         )['feature'].head(2).values.tolist()
 
         # 5. MAKE PREDICTIONS
-        y_predict_test = causal_model.predict(X=X_test[[treatment] + covariates])
+        # y_predict_test = causal_model.predict(X=X_test[[treatment] + covariates])
         y_predict_test_ate = causal_model.predict_ate(X=X_test[[treatment] + covariates])
 
         # 6. DISPLAY RESULTS
-        mape_test = mean_absolute_percentage_error(
-            y_true=y_test,
-            y_pred=y_predict_test
-        )
+        # mape_test = mean_absolute_percentage_error(
+        #     y_true=y_test,
+        #     y_pred=y_predict_test
+        # )
+        #
+        # r2_test = r2_score(
+        #     y_true=y_test,
+        #     y_pred=y_predict_test
+        # )
+        #
+        # n = len(X_test) # number of observations
+        # k = len([treatment] + covariates) # number of predictors
+        # adjusted_r2_test = 1 - ((1 - r2_test) * (n - 1) / (n - k - 1))
+        #
+        # st.header('Model performance over test set')
+        # st.write(
+        #     'Test MAPE:',
+        #     round(
+        #         mape_test,
+        #         4
+        #     )
+        # )
+        # st.write(
+        #     'Adjusted test R2:',
+        #     round(
+        #         adjusted_r2_test,
+        #         4
+        #     )
+        # )
 
-        r2_test = r2_score(
-            y_true=y_test,
-            y_pred=y_predict_test
-        )
-
-        n = len(X_test) # number of observations
-        k = len([treatment] + covariates) # number of predictors
-        adjusted_r2_test = 1 - ((1 - r2_test) * (n - 1) / (n - k - 1))
-
-        st.header('Model performance over test set')
-        st.write(
-            'Test MAPE:',
-            round(
-                mape_test,
-                4
-            )
-        )
-        st.write(
-            'Adjusted test R2:',
-            round(
-                adjusted_r2_test,
-                4
-            )
-        )
-
-        st.header('True and predicted ATE over test set')
+        st.header('Predicted average treatment effect (ATE)')
         # st.write('True ATE:', true_ate_df.query(f'filename == "{filename}"')['trueATE'].values[0])
         st.write(
             'Naïvely computed ATE:',

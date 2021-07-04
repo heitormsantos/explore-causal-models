@@ -34,8 +34,8 @@ predictive_models_dict = {
 treatment = 'coupons'
 
 # 1. LOAD FILES
-# CSV_PATH = 'data/low100.csv'
-CSV_PATH = 'data/coupons.xls'
+# CSV_PATH = 'data/coupons.xls'
+CSV_PATH = 'data/coupons_v2.csv'
 df = pd.read_csv(CSV_PATH)
 
 filename = CSV_PATH.split('/')[-1].rstrip('.xls')
@@ -55,7 +55,7 @@ st.sidebar.header('Choose model variables for predictive model')
 pred_target = st.sidebar.selectbox(
     'Which variable is the target for the prediction model?',
     df.columns.tolist(),
-    index=5
+    index=6
 )
 
 preselected_covariates = [cov for cov in df.columns if cov not in (pred_target, 'customer_id')]
@@ -143,26 +143,42 @@ if session_state.train_button_sent:
 
         st.header('Partial dependence plot for the test set')
         pdp = plot_partial_dependence(
-            pred_algorithm.model, df[pred_covariates].sample(frac=0.1), [treatment],
+            pred_algorithm.model, df[pred_covariates].sample(frac=0.05), [treatment],
             kind='both',
         )
         st.pyplot(pdp.figure_)
 
-        top_2_features = np.array(pred_covariates)[np.argsort(np.array(feature_importances))[::-1]][:2]
+        top_2_features = np.array(pred_covariates)[np.argsort(np.array(abs(feature_importances)))[::-1]][:2]
         st.header('Target variable contour plot')
+
+        # contour_2d_features_0 = st.selectbox(
+        #     'Select first covariates for2D-contour plot',
+        #     pred_covariates,
+        #     index=pred_covariates.index(top_2_features[0])
+        # )
+        #
+        # contour_2d_features_1 = st.selectbox(
+        #     'Select second covariates for2D-contour plot',
+        #     pred_covariates,
+        #     index=pred_covariates.index(top_2_features[1])
+        # )
+
+        contour_2d_features_0 = top_2_features[0]
+        contour_2d_features_1 = top_2_features[1]
+
         fig = go.Figure(data=
         go.Contour(
             z=y_pred,
-            x=df[top_2_features[0]].values,  # horizontal axis
-            y=df[top_2_features[1]].values,  # vertical axis
-            colorbar={"title": 'Individual treatment effect'}
+            x=df[contour_2d_features_0].values,  # horizontal axis
+            y=df[contour_2d_features_1].values,  # vertical axis
+            colorbar={"title": 'Net value'}
         )
         )
 
         fig.update_layout(
             title="Target variable versus 2 most important features",
-            xaxis_title=f'Variable "{top_2_features[0]}"',
-            yaxis_title=f'Variable "{top_2_features[1]}"',
+            xaxis_title=f'Variable "{contour_2d_features_0}"',
+            yaxis_title=f'Variable "{contour_2d_features_1}"',
             legend_title="Target variable",
             # font=dict(
             #     family="Courier New, monospace",
