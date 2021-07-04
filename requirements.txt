@@ -8,3 +8,5 @@ scipy==1.6.3
 seaborn==0.11.1
 streamlit==0.82.0
 umap-learn==0.5.1
+xgboost==1.4.2
+
